@@ -59,7 +59,8 @@ namespace StyleCop.Analyzers.ReadabilityRules
                 var currentMember = enumDeclaration.Members[i];
                 var currentLine = currentMember.GetLineSpan().StartLinePosition.Line;
 
-                if (currentLine == previousLine)
+                // A member without a name is incomplete code, such as a second comma or an attribute being typed.
+                if (currentLine == previousLine && !currentMember.Identifier.IsMissing)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(Descriptor, currentMember.Identifier.GetLocation()));
                 }

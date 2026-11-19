@@ -157,5 +157,56 @@ public enum TestEnum
 
             await VerifyCSharpDiagnosticAsync(testCode, expected).ConfigureAwait(false);
         }
+
+        /// <summary>
+        /// Verifies that an enum member whose name is missing, as while typing a second comma or an attribute, is not
+        /// reported, and that a member that does share a line is still reported and fixed.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+        [Fact]
+        public async Task TestMissingMemberNameAsync()
+        {
+            var testCode = @"using System;
+
+public enum TestEnum1
+{
+    One, {|#0:Two|},,
+}
+
+public enum TestEnum2
+{
+    One,
+    Two, [Obsolete]
+}
+";
+
+            var fixedCode = @"using System;
+
+public enum TestEnum1
+{
+    One,
+    Two,,
+}
+
+public enum TestEnum2
+{
+    One,
+    Two, [Obsolete]
+}
+";
+
+            var test = new CSharpTest
+            {
+                TestCode = testCode,
+                FixedCode = fixedCode,
+            };
+            test.ExpectedDiagnostics.Add(Diagnostic().WithLocation(0));
+            test.ExpectedDiagnostics.Add(DiagnosticResult.CompilerError("CS1001").WithLocation(5, 14));
+            test.ExpectedDiagnostics.Add(DiagnosticResult.CompilerError("CS1001").WithLocation(11, 20));
+            test.FixedState.ExpectedDiagnostics.Add(DiagnosticResult.CompilerError("CS1001").WithLocation(6, 9));
+            test.FixedState.ExpectedDiagnostics.Add(DiagnosticResult.CompilerError("CS1001").WithLocation(12, 20));
+
+            await test.RunAsync().ConfigureAwait(false);
+        }
     }
 }
