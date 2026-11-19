@@ -158,6 +158,68 @@ namespace Foot
             await VerifyCSharpFixAsync(testCode, expected, CorrectCode).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Verifies how directives, comments, and blank lines between members combine, including blank lines on either
+        /// side of a directive and a directive that is the only separator.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous unit test.</returns>
+        [Fact]
+        public async Task TestDirectivesBetweenMembersAsync()
+        {
+            var testCode = @"#define DEBUG
+public class TestClass
+{
+    public void M1()
+    {
+    }
+#region R
+    public void M2()
+    {
+    }
+
+#endregion
+    public void M3()
+    {
+    }
+#if DEBUG
+
+    public void M4()
+    {
+    }
+#endif
+    // comment
+    public void M5()
+    {
+    }
+#pragma warning disable CS0169
+    private int field1;
+#pragma warning restore CS0169
+
+    public void M6()
+    {
+    }
+#if !DEBUG
+    public void Disabled()
+    {
+    }
+#endif
+    public void M7()
+    {
+    }
+}
+";
+
+            DiagnosticResult[] expected =
+            {
+                Diagnostic().WithLocation(7, 1),
+                Diagnostic().WithLocation(21, 1),
+                Diagnostic().WithLocation(26, 1),
+                Diagnostic().WithLocation(33, 1),
+            };
+
+            await VerifyCSharpDiagnosticAsync(testCode, expected).ConfigureAwait(false);
+        }
+
         [Fact]
         public async Task HasEmptyLineWorksCorrectlyAsync()
         {

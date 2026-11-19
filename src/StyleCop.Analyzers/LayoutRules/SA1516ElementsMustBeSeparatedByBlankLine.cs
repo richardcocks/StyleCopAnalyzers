@@ -420,15 +420,49 @@ namespace StyleCop.Analyzers.LayoutRules
                 return;
             }
 
-            var parent = firstNode.Parent;
-
-            var allTrivia = parent.DescendantTrivia(
-                TextSpan.FromBounds(firstNode.Span.End, secondNode.Span.Start),
-                descendIntoTrivia: true);
+            IEnumerable<SyntaxTrivia> allTrivia;
+            if (firstNode.FullSpan.End == secondNode.FullSpan.Start)
+            {
+                // A span walk from the parent steps over every earlier child, which is quadratic for long member lists.
+                allTrivia = GetTriviaBetweenAdjacentNodes(firstNode, secondNode);
+            }
+            else
+            {
+                allTrivia = firstNode.Parent.DescendantTrivia(
+                    TextSpan.FromBounds(firstNode.Span.End, secondNode.Span.Start),
+                    descendIntoTrivia: true);
+            }
 
             if (!HasEmptyLine(allTrivia))
             {
                 context.ReportDiagnostic(Diagnostic.Create(Descriptor, GetDiagnosticLocation(secondNode), DiagnosticProperties));
+            }
+        }
+
+        private static IEnumerable<SyntaxTrivia> GetTriviaBetweenAdjacentNodes(SyntaxNode firstNode, SyntaxNode secondNode)
+        {
+            foreach (var trivia in firstNode.GetTrailingTrivia())
+            {
+                yield return trivia;
+                if (trivia.HasStructure)
+                {
+                    foreach (var structuredTrivia in trivia.GetStructure().DescendantTrivia(descendIntoTrivia: true))
+                    {
+                        yield return structuredTrivia;
+                    }
+                }
+            }
+
+            foreach (var trivia in secondNode.GetLeadingTrivia())
+            {
+                yield return trivia;
+                if (trivia.HasStructure)
+                {
+                    foreach (var structuredTrivia in trivia.GetStructure().DescendantTrivia(descendIntoTrivia: true))
+                    {
+                        yield return structuredTrivia;
+                    }
+                }
             }
         }
 
