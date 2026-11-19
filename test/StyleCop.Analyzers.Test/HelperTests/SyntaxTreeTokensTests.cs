@@ -58,5 +58,19 @@ public class Foo
             Assert.Contains(expected, token => token.Parent.IsPartOfStructuredTrivia());
             Assert.Equal(expected, tokens.GetTokensIncludingStructuredTrivia(TestContext.Current.CancellationToken));
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestTriviaMatchDescendantTrivia(bool descendIntoTrivia)
+        {
+            var root = CSharpSyntaxTree.ParseText(TestCode, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken);
+            var tokens = new SyntaxTreeTokens(root.SyntaxTree);
+            var expected = root.DescendantTrivia(descendIntoTrivia: descendIntoTrivia).ToArray();
+
+            Assert.Contains(expected, trivia => trivia.HasStructure);
+            Assert.Equal(descendIntoTrivia, expected.Any(trivia => trivia.Token.Parent.IsPartOfStructuredTrivia()));
+            Assert.Equal(expected, tokens.GetTrivia(descendIntoTrivia, TestContext.Current.CancellationToken));
+        }
     }
 }

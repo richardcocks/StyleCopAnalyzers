@@ -4,6 +4,7 @@
 namespace StyleCop.Analyzers.Helpers
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
@@ -65,6 +66,49 @@ namespace StyleCop.Analyzers.Helpers
         public ImmutableArray<SyntaxToken> GetTokensIncludingStructuredTrivia(CancellationToken cancellationToken)
         {
             return this.GetCollected(cancellationToken).TokensIncludingStructuredTrivia;
+        }
+
+        /// <summary>
+        /// Gets the trivia of the tree in document order, as <see cref="SyntaxNode.DescendantTrivia(Func{SyntaxNode, bool}, bool)"/>
+        /// returns them for the root of the tree, without walking the tree again.
+        /// </summary>
+        /// <param name="descendIntoTrivia"><see langword="true"/> to include the trivia of structured trivia, each
+        /// following the structured trivia that contains it.</param>
+        /// <param name="cancellationToken">The cancellation token that the operation will observe.</param>
+        /// <returns>The trivia of the tree.</returns>
+        public IEnumerable<SyntaxTrivia> GetTrivia(bool descendIntoTrivia, CancellationToken cancellationToken)
+        {
+            return GetTrivia(this.GetTokens(cancellationToken), descendIntoTrivia);
+        }
+
+        private static IEnumerable<SyntaxTrivia> GetTrivia(ImmutableArray<SyntaxToken> tokens, bool descendIntoTrivia)
+        {
+            foreach (var token in tokens)
+            {
+                foreach (var trivia in token.LeadingTrivia)
+                {
+                    yield return trivia;
+                    if (descendIntoTrivia && trivia.HasStructure)
+                    {
+                        foreach (var structuredTrivia in trivia.GetStructure().DescendantTrivia(descendIntoTrivia: true))
+                        {
+                            yield return structuredTrivia;
+                        }
+                    }
+                }
+
+                foreach (var trivia in token.TrailingTrivia)
+                {
+                    yield return trivia;
+                    if (descendIntoTrivia && trivia.HasStructure)
+                    {
+                        foreach (var structuredTrivia in trivia.GetStructure().DescendantTrivia(descendIntoTrivia: true))
+                        {
+                            yield return structuredTrivia;
+                        }
+                    }
+                }
+            }
         }
 
         private static void AddStructuredTriviaTokens(SyntaxTriviaList triviaList, ImmutableArray<SyntaxToken>.Builder builder)

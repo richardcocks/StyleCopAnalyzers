@@ -4,6 +4,7 @@
 namespace StyleCop.Analyzers.SpacingRules
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
@@ -60,9 +61,8 @@ namespace StyleCop.Analyzers.SpacingRules
 
         private static void HandleSyntaxTree(SyntaxTreeAnalysisContext context, StyleCopSettings settings, SyntaxTreeTokens tokens)
         {
-            SyntaxNode root = context.Tree.GetCompilationUnitRoot(context.CancellationToken);
             ImmutableArray<TextSpan> excludedSpans;
-            if (!LocateExcludedSpans(root, tokens.GetTokensIncludingStructuredTrivia(context.CancellationToken), out excludedSpans))
+            if (!LocateExcludedSpans(tokens.GetTrivia(descendIntoTrivia: true, context.CancellationToken), tokens.GetTokensIncludingStructuredTrivia(context.CancellationToken), out excludedSpans))
             {
                 return;
             }
@@ -174,12 +174,12 @@ namespace StyleCop.Analyzers.SpacingRules
             }
         }
 
-        private static bool LocateExcludedSpans(SyntaxNode root, ImmutableArray<SyntaxToken> tokens, out ImmutableArray<TextSpan> excludedSpans)
+        private static bool LocateExcludedSpans(IEnumerable<SyntaxTrivia> allTrivia, ImmutableArray<SyntaxToken> tokens, out ImmutableArray<TextSpan> excludedSpans)
         {
             ImmutableArray<TextSpan>.Builder builder = ImmutableArray.CreateBuilder<TextSpan>();
 
             // Locate disabled text
-            foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
+            foreach (var trivia in allTrivia)
             {
                 if (trivia.IsKind(SyntaxKind.DisabledTextTrivia))
                 {

@@ -103,14 +103,12 @@ namespace StyleCop.Analyzers.LayoutRules
 
         private static void HandleCompilationStart(CompilationStartAnalysisContext context)
         {
-            context.RegisterSyntaxTreeAction(c => HandleSyntaxTreeAnalysis(c, context.Compilation));
+            context.RegisterSyntaxTreeAction(c => HandleSyntaxTreeAnalysis(c, context.Compilation, SyntaxTreeTokens.GetOrCreate(context, c.Tree)));
         }
 
-        private static void HandleSyntaxTreeAnalysis(SyntaxTreeAnalysisContext context, Compilation compilation)
+        private static void HandleSyntaxTreeAnalysis(SyntaxTreeAnalysisContext context, Compilation compilation, SyntaxTreeTokens tokens)
         {
-            var syntaxRoot = context.Tree.GetRoot(context.CancellationToken);
-
-            foreach (var trivia in syntaxRoot.DescendantTrivia().Where(trivia => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)))
+            foreach (var trivia in tokens.GetTrivia(descendIntoTrivia: false, context.CancellationToken).Where(trivia => trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)))
             {
                 if (trivia.ToString().StartsWith("////", StringComparison.Ordinal))
                 {
